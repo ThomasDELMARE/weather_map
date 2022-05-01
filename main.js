@@ -1,10 +1,9 @@
 // Imports
 const express = require('express');
-const { MongoClient, ServerApiVersion } = require('mongodb');
 const path = require('path');
 const mqtt = require('mqtt');
+const { MongoClient, ServerApiVersion } = require('mongodb');
 const { redirect } = require('express/lib/response');
-var accessAllowed = false;
 
 // Déclarations
 const app = express();
@@ -17,6 +16,7 @@ const mqttOptions = {
     // Auth
     clientId: 'tdmshe'
 }
+var accessAllowed = false;
 
 // APP CONFIGURATION
 app.use(require("cors")()); // Accepte les requêtes inter domaines
@@ -24,51 +24,55 @@ app.use(require("body-parser").json()); // Parse automatiquement les JSON des re
 app.use("/src", express.static(path.join(__dirname, '/src/'))); // Permet d'utiliser les scripts dans henoku
 
 // Main
-mqttInit()
+main()
 
 // Routes
+
+// Route redirigeant vers la page de connexion
 app.get('/', (req, res) => {
+    // Si l'utilisateur ne s'est pas identifié, il ne doit pas avoir accès à la page d'accueil
     if (accessAllowed) {
         res.sendFile(path.join(__dirname, '/index.html'), { acceptRanges: false })
     } else {
-        res.sendFile(path.join(__dirname, '/login.html'), { acceptRanges: false })
+        res.sendFile(path.join(__dirname, '/src/views/login.html'), { acceptRanges: false })
     }
 });
 
+// Route redirigeant vers la page d'accueil
 app.get('/home', (req, res) => {
-    console.log("Access allowed value :", accessAllowed)
+    // Si l'utilisateur ne s'est pas identifié, il ne doit pas avoir accès à la page d'accueil
     if (!accessAllowed) {
-        console.log("On redirige vers login")
-        res.sendFile(path.join(__dirname, '/login.html'), { acceptRanges: false })
+        res.sendFile(path.join(__dirname, '/src/views/login.html'), { acceptRanges: false })
     } else {
-        console.log("On redirige vers l'accueil")
         res.sendFile(path.join(__dirname, '/index.html'), { acceptRanges: false });
     }
 })
 
+// Route permettant de 
 app.post("/confirmUserAuthentication", async(req, res) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
-    // On compte le nombre de requêtes qu'on a trouvé
+
     try {
         await client.connect();
         const collection = client.db("weather_map").collection("users");
         requestPassword = req.body.password;
         requesLogin = req.body.login;
 
-        const query = { login: requesLogin, password: requestPassword }
+        const query = { login: requesLogin, password: requestPassword };
 
+        // On compte le nombre de requêtes qu'on a trouvé
         const resultCount = await collection.countDocuments(query);
         console.log(`Number of user fetched : ${resultCount}`);
 
+        // On n'a trouvé une combinaison identifiant et mot de passe valide
         if (resultCount > 0) {
             console.log("Authentication success !");
             // On fait une fonction ici pour pouvoir modifier la variable de façon globale
             setAccessAllowed();
+            // On redirige vers la route /home afin que l'utilisateur puisse être mis sur la bonne page
             res.redirect("/home");
-            // TODO : PB ici
-            console.log("Access allowed value :", accessAllowed)
         } else {
-            // TODO : l'afficher sur la page
+            res.redirect("/")
             console.log("Authentication failed, please retry");
         }
     } catch (err) {
@@ -76,50 +80,12 @@ app.post("/confirmUserAuthentication", async(req, res) => {
     }
 });
 
-app.get("/fetchUser", async(req, res) => {
-    if (!accessAllowed) {
-        return
-    }
-    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
-    // On compte le nombre de requêtes qu'on a trouvé
-    try {
-        await client.connect();
-        const collection = client.db("weather_map").collection("esp_list");
-        var query = null
-        if (req.params.name == "propertyName") {
-            query = { "espName": req.params.espName }
-        } else {
-            query = { "espAddress": req.params.espName }
-        }
-
-        const resultCount = collection.countDocuments(query);
-        console.log(`Number of result fetched : ${resultCount}`);
-
-        if (resultCount > 0) {
-            // Traitement de l'objet trouvé
-            var cursor = collection.find(query)
-            var cursorToArray = await cursor.toArray()
-
-            console.log("Résultat : ", cursorToArray)
-            console.log("Type de cursorarray : ", typeof cursorToArray)
-            console.log("Type de cursorarray : ", cursorToArray[0].nom)
-
-            return cursorToArray;
-        }
-    } finally {
-        await client.close();
-    }
-    return res.status(500);
-});
-
+// Route permettant de supprimer un utilisateur
 app.delete("/deleteUser", async(req, res) => {
-    if (!accessAllowed) {
-        return
-    }
+    // On ne doit pas permettre à l'utilisateur de supprimer des données s'il n'est pas connecté
+    if (!accessAllowed) return
 
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
-
-    console.log("Address : ", req.body.address)
 
     if (req.body.address == "" | req.body.address == null) {
         return res.status = 500;
@@ -129,12 +95,12 @@ app.delete("/deleteUser", async(req, res) => {
         await client.connect();
         const collection = client.db("weather_map").collection("esp_list");
         var query = { address: req.body.address }
-        console.log("Query is :", query)
 
+        // On supprime autant d'entrées que possible
         const deleteResult = await collection.deleteMany(query);
-        console.log(deleteResult.deletedCount)
+
         if (deleteResult.deletedCount === 1) {
-            console.log("Le document a bien été supprimé !");
+            console.log("Le document a bien été supprimé ! ", deleteResult.deletedCount, " occurences ont été supprimées !");
             return res.status(200)
         } else {
             console.log("Aucun document n'a été trouvé avec cette query, 0 document ont été supprimé.");
@@ -149,27 +115,24 @@ app.delete("/deleteUser", async(req, res) => {
     return res.status(500)
 });
 
+// Route permettant de récupérer tous les utilisateurs
 app.get("/fetchAllUsers", async(req, res) => {
-    if (!accessAllowed) {
-        return
-    }
+    if (!accessAllowed) return
 
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
-    // On compte le nombre de requêtes qu'on a trouvé
+
     try {
         await client.connect();
         const collection = client.db("weather_map").collection("esp_list");
 
+        // On compte le nombre de requêtes qu'on a trouvé
         const resultCount = await collection.countDocuments();
         console.log(`Number of result fetched : ${resultCount}`);
 
         if (resultCount > 0) {
             // Traitement de l'objet trouvé
             var cursor = collection.find()
-            var cursorToArray = await cursor.toArray()
-
-            // console.log("Résultat : ", cursorToArray)
-
+            var cursorToArray = await cursor.toArray() // On le transforme en array pour pouvoir manipuler plus facilement l'objet
             return res.json(cursorToArray);
         }
     } catch (err) {
@@ -181,12 +144,13 @@ app.get("/fetchAllUsers", async(req, res) => {
     return res.status(500);
 });
 
+// Route permettant d'ajouter un utilisateur à la base de données
 app.post("/addUser", async(req, res) => {
-    if (!accessAllowed) {
-        return
-    }
+    if (!accessAllowed) return
 
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+
+    // On vérifie que les données envoyées sont exploitables
     if (req.body.value == "" | req.body.value == null | req.body.address == "" | req.body.address == null) {
         return res.status = 500;
     }
@@ -194,11 +158,8 @@ app.post("/addUser", async(req, res) => {
     try {
         await client.connect();
         const collection = client.db("weather_map").collection("esp_list");
-        var now = new Date();
-
+        var now = new Date(); // On met la date de reçu de la requête
         var value = parseFloat(req.body.value);
-        console.log("Type of value : ", typeof value)
-        console.log(value)
 
         if (value != NaN) {
             const insertQuery = {
@@ -224,83 +185,50 @@ app.post("/addUser", async(req, res) => {
     }
 });
 
+// Main route, permettant de démarrer le projet et de notifier l'utilisateur que le projet a bien démarré
 app.listen(port, async() => {
     console.log(`App running on localhost, port : ${port}!`)
-
-    // try {
-    //     await client.connect();
-    //     const collection = client.db("weather_map").collection("esp_list");
-
-    //     // Permet de savoir la taille estimée de la BDD
-    //     const estimate = await collection.estimatedDocumentCount();
-    //     console.log(`Estimated number of documents in the collection: ${estimate}`);
-
-    //     // Query de test pour voir si on peut fetch
-    //     const query = { "nom": "test" };
-
-    //     // On compte le nombre de requêtes qu'on a trouvé
-    //     const countCanada = await collection.countDocuments(query);
-    //     console.log(`Number of result fetched : ${countCanada}`);
-
-    //     if (countCanada > 0) {
-    //         // Traitement de l'objet trouvé
-    //         var cursor = collection.find(query)
-    //         var cursorArray = await cursor.toArray()
-
-    //         console.log("Résultat : ", cursorArray)
-    //         console.log("Type de cursorarray : ", typeof cursorArray)
-    //         console.log("Type de cursorarray : ", cursorArray[0].nom)
-    //     }
-
-    //     // Ajout d'un document
-    //     const insertQuery = {
-    //         nom: "NODEJS",
-    //         adresse: "localhost",
-    //     }
-
-    //     const insertResult = await collection.insertOne(insertQuery);
-    //     console.log(`Un document a été inséré avec l'id : ${insertResult.insertedId}`);
-
-    //     // Suppression de document
-    //     const deleteResult = await collection.deleteOne(insertQuery);
-    //     if (deleteResult.deletedCount === 1) {
-    //         console.log("Le document a bien été supprimé !");
-    //     } else {
-    //         console.log("Aucun document n'a été trouvé avec cette query, 0 document ont été supprimé.");
-    //     }
-
-    // } finally {
-    //     await client.close();
-    // }
 });
 
 // Functions
-async function addUserData(jsonData) {
-    console.log("Json data content : ", jsonData)
-    try {
-        const who = jsonData.info.ident; // MAC
-        const value = jsonData.status.temperature; // TEMPERATURE
-        const location = jsonData.info.loc; // LOCATION (lat + long)
-        const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+// Permet d'ajouter toutes les données de l'utilisateur en BDD
+async function addUserData(jsonData) {
+    // Vous pouvez décommenter afin d'aficher le contenu de la variable JSON qui est arrivée
+    console.log("Json data content : ", jsonData)
+
+    var who = ""; // MAC
+    var value = ""; // TEMPERATURE
+    var location = "" // LOCATION (lat + long)
+    var client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+
+    // On met dans un try catch dans le cas où les données ne seraient pas présentes ou que le parse se passe mal
+    try {
+        who = jsonData.info.ident; // MAC
+        value = jsonData.status.temperature; // TEMPERATURE
+        location = jsonData.info.loc; // LOCATION (lat + long)
+        lat = parsingLocation(location)[0];
+        lon = parsingLocation(location)[1];
     } catch (err) {
         console.log("Add user data failed because of : ", err.message)
         return null
     }
 
-    if (who == "" | who == null | value == "" | value == null | location == null | location == "") {
+    // On vérifie que les données soient exploitables
+    if (who == "" | who == null | value == "" | value == null | lat == null | lat == "" | lon == null | lon == "") {
         return null;
     }
 
     try {
         await client.connect();
         const collection = client.db("weather_map").collection("esp_list");
+
         // On compte le nombre de données déjà présentes
         const countQuery = { "address": who };
         const countUser = await collection.countDocuments(countQuery);
 
         // Si on a plus de 10 données, on enlève les précédentes
-        if (countUser > 5) {
+        if (countUser > 10) {
             // Traitement de l'objet trouvé
             var cursor = collection.find(countQuery)
             var oldestOne = new Date();
@@ -327,11 +255,8 @@ async function addUserData(jsonData) {
             }
         }
 
+        // On s'occupe maintenant de l'insertion en BDD
         var now = new Date();
-        var latLonSplit = location.split(";")
-        var lon = latLonSplit[0]
-        var lat = latLonSplit[1]
-
         const insertQuery = {
             address: who,
             value: value,
@@ -353,13 +278,16 @@ async function addUserData(jsonData) {
     }
 }
 
+// Permet d'initialiser toutes les données liées à MQTT
 function mqttInit() {
     const client = mqtt.connect('mqtt://test.mosquitto.org', mqttOptions)
 
+    // On subscribe au topic 
     client.on('connect', function() {
-        client.subscribe('sensors/temp', function(err) {})
+        client.subscribe('iot/M1Miage2022', function(err) {})
     })
 
+    // A chaque reçu de message, on essaye de parser le contenu et on affiche dans la console
     client.on('message', function(topic, message) {
         // message is Buffer
         try {
@@ -372,6 +300,50 @@ function mqttInit() {
     })
 }
 
+// Permet de changer l'état de la variable globale d'accès au page, on ne peut pas changer le contenu d'une variable globale depuis les routes
 function setAccessAllowed() {
     accessAllowed = true;
+}
+
+// Fonction permettant d'essayer le parsing des données de location
+// Vu que les donneés à renvoyer n'étaient pas claires, nous avons décidé de gérer le cas où la variable "location" est un json ou un string
+// d'une certaine forme.
+function parsingLocation(locationStringOrJson) {
+    parsing = []
+
+    try {
+        // Avec l'exemple '{"lat":43.71164703,"lgn":7.282168388}'
+
+        // On isole la latitude
+        lat = locationStringOrJson.split(":");
+        latText = lat[1] // Renverra 43.71164703,"lgn":7.282168388}'
+        lat = latText.split(",")
+        latText = lat[0] // Renverra 43.71164703
+        parsing.push(latText)
+
+        // On isole la longitude
+        lgn = locationStringOrJson.split(":");
+        lgnText = lgn[2] // Renverra 43.71164703,"lgn":7.282168388}'
+        lgn = lgnText.split("}")
+        lgnText = lgn[0] // Renverra 7.282168388
+        parsing.push(lgnText)
+
+        return parsing;
+    } catch {
+        console.log("Tried to parse location from string and failed")
+    }
+    try {
+        parsed = JSON.parse(locationStringOrJson);
+        parsing.push(parsed.lat, parsed.lgn);
+        return parsing;
+    } catch {
+        console.log("Tried to parse location from Json and failed.")
+    }
+
+    return null;
+}
+
+// Main
+function main() {
+    mqttInit();
 }

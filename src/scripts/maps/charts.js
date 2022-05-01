@@ -1,77 +1,4 @@
 // Initialisation des variables
-
-//=== Initialisation des traces/charts de la page html ===
-// Apply time settings globally
-Highcharts.setOptions({
-    global: { // https://stackoverflow.com/questions/13077518/highstock-chart-offsets-dates-for-no-reason
-        useUTC: false
-            // type: 'spline'
-    },
-    time: { timezone: 'Europe/Paris' }
-});
-
-var which_esps = [];
-var refreshInterval = 300000;
-var currentIntervalId = 0;
-retrieveAllEsp();
-
-function modifyRefreshTime() {
-    refreshInterval = document.getElementById('timeoutValue').value
-
-    if (!isNaN(refreshInterval)) {
-        refreshInterval = (document.getElementById('timeoutValue').value) * 1000;
-        console.log("New refresh time is : ", refreshInterval)
-        clearInterval(currentIntervalId);
-
-        window.setInterval(get_samples_from_database,
-                refreshInterval,
-                espList) // param 1 for get_samples_from_database()
-
-    } else {
-        alert("Le nombre entré n'est pas un chiffre !")
-        return
-    }
-
-}
-
-$.ajax({
-    url: "/fetchAllUsers",
-    type: 'GET',
-    headers: { Accept: "application/json", },
-    success: function(resultat, statut) {
-        setEspList(resultat);
-    },
-    error: function(resultat, statut, erreur) {
-        console.log("Error happened on the fetch all users ajax call : ", erreur)
-    }
-})
-
-function setEspList(resultat) {
-    //=== Gestion de la flotte d'ESP =================================
-    var which_esps_mac = []
-    var which_esps_ip = []
-    var which_esps = resultat
-
-    // Main
-    // TODO
-    // On récupère toutes les adresses et on les assigne au bon tableau
-    // for (var i = 0; i < which_esps.length; i++) {
-    //     // countString(which_esps[i].address, ":") > 2
-    //     if (which_esps[i].address.includes(":")) {
-    //         which_esps_mac.push(which_esps[i]);
-    //     } else {
-    //         which_esps_ip.push(which_esps[i]);
-    //     }
-    // }
-
-    process_esp(which_esps, "mac")
-
-    for (var j = 0; j < which_esps_ip.length; i++) {
-        // process_esp(which_esps_ip[i], "ip")
-    }
-}
-
-
 // cf https://jsfiddle.net/gh/get/library/pure/highcharts/highcharts/tree/master/samples/highcharts/demo/spline-irregular-time/
 var chart1 = new Highcharts.Chart({
     title: { text: 'Temperatures' },
@@ -80,10 +7,7 @@ var chart1 = new Highcharts.Chart({
     chart: { renderTo: 'container1' },
     xAxis: { title: { text: 'Heure' }, type: 'datetime' },
     yAxis: { title: { text: 'Temperature (Deg C)' } },
-    // TODO : On devrait stocker ce genre de choses dans le cloud Atlas, c'est pas beau comme ça (potentiellement point à surligner, persistence des données)
     series: [],
-    // { name: 'ESP1', data: [] },
-    // TODO : On va limiter à 10 le nombre de machines (sinon génération de couleurs aléatoires, pas ouf ?)
     colors: ['red', 'green', 'blue', 'purple', 'black', 'yellow', 'brown', 'chartreuse', 'aqua', 'crimson'],
     plotOptions: {
         series: {},
@@ -93,187 +17,9 @@ var chart1 = new Highcharts.Chart({
         }
     }
 });
-
-//=== Installation de la periodicite des requetes GET============
-function process_esp(espList, typeAdresse) {
-    // Adresse IP
-    if (typeAdresse == "ip") {
-        // Gestion de la temperature
-        // premier appel pour eviter de devoir attendre RefreshT
-        get_samples_from_esp(which_esps[i]);
-    }
-    // Adresse MAC
-    if (typeAdresse == "mac") {
-        // Gestion de la temperature
-        // premier appel pour eviter de devoir attendre RefreshT
-        get_samples_from_database(espList);
-
-        //calls a function or evaluates an expression at specified
-        //intervals (in milliseconds).
-        currentIntervalId =
-            window.setInterval(get_samples_from_database,
-                refreshInterval,
-                espList) // param 1 for get_samples_from_database()
-    } else {
-        return null;
-    }
-}
-
-//=== Recuperation dans le Node JS server et d'Atlas des samples de l'ESP et 
-//=== Alimentation des charts ====================================
-//=== Ici on interroge pas l'ESP mais juste une base de données qui contient toutes les valeurs
-function get_samples_from_database(espList) {
-    // TODO : A commenter
-    while (espList.length > 0 && chart1.series.length < 8) {
-        try {
-            selectedEsp = espList[0].address
-            pushedId = []
-            selectedEspList = []
-
-            for (var i = 0; i < espList.length; i++) {
-                if (espList[i].address == selectedEsp) {
-                    selectedEspList.push([Date.parse(espList[i].date), parseFloat(espList[i].value)]);
-                    pushedId.push(i)
-                }
-            }
-            alreadyPresent = false
-
-            for (var j = 0; j < pushedId.length; j++) {
-                espList.splice(pushedId[i], 1)
-            }
-
-            if (selectedEspList.length > 1) {
-                for (var p = 0; p < chart1.series.length; p++) {
-                    if (selectedEsp == chart1.series.name) {
-                        alreadyPresent = true;
-                    }
-                }
-
-                if (!alreadyPresent) {
-                    chart1.addSeries({
-                        name: selectedEsp,
-                        data: selectedEspList
-                    })
-                }
-            }
-        } catch (err) {
-            console.log("Ajout de l'esp n'a pas réussi car le format n'est pas le bon : ", err)
-        }
-        chart1.redraw();
-
-    }
-}
-
-// Interrogation via IP TODO dire pk on l'a pas gardé
-function get_samples_from_esp(path_on_node, serie) {
-    // var tempUrl = "/esp/temp"
-
-    // $.ajax({
-    //     url: tempUrl.concat(path_on_node), // URL to "GET" : /esp/temp ou /esp/light
-    //     type: 'GET',
-    //     headers: { Accept: "application/json", },
-    //     success: function(resultat) { // Anonymous function on success
-    //         // TODO : Gérer le fait qu'on ne puisse pas avoir plus de 10 données
-    //         let listeData = [];
-    //         resultat.forEach(function(element) {
-    //             listeData.push([Date.parse(element.date), element.value]);
-    //             //listeData.push([Date.now(),element.value]);
-    //         });
-    //         serie.setData(listeData); //serie.redraw();
-    //     },
-    //     error: function(resultat, statut, erreur) {},
-    //     complete: function(resultat, statut) {}
-    // });
-}
-
-
-function retrieveAllEsp() {
-    $.ajax({
-        url: "/fetchAllUsers",
-        type: 'GET',
-        headers: { Accept: "application/json", },
-        success: function(resultat, statut) {
-            console.log("result from get : ")
-            console.log(resultat[0])
-            espResults = resultat.map(res => {
-                return {
-                    "temp": res.value,
-                    "lat": res.lat,
-                    "lon": res.lon,
-                    "name": res.esp_nb,
-                    "city": res.city,
-                    "date": new Date(res.date)
-                }
-            })
-            console.log(espResults)
-            setEspList(resultat);
-            displayMarkers(espResults, true);
-        },
-        error: function(resultat, statut, erreur) {
-            console.log("Error happened on the fetch all users ajax call : ", erreur)
-        }
-    });
-}
-
-function countString(str, letter) {
-    let count = 0;
-
-    // looping through the items
-    for (let i = 0; i < str.length; i++) {
-
-        // check if the character is at that position
-        if (str.charAt(i) == letter) {
-            count += 1;
-        }
-    }
-    return count;
-}
-
-
-
-// PARTIE QUI CONCERNE CE QU HASNAA A FAIT TODO
-async function apiCalls(markers) {
-    let lat, lon;
-    const promises = [];
-
-    // console.log("in apiCalls", markers)
-    for (var i = 0; i < markers.length; i++) {
-        lat = markers[i].lat;
-        lon = markers[i].lon;
-
-        const apiKey = "&appid=940d0f1e4f2294d0c4a9ab486dfd9a52";
-        const route = "https://api.openweathermap.org/data/2.5/weather"
-        const params = "?units=metric&lat=" + lat + "&lon=" + lon;
-
-        const url = route + params + apiKey;
-
-        // console.log("url to call", url)
-
-        promises.push(apiCall(url)); // Executed about 50 times.
-    }
-    return Promise.all(promises)
-}
-
-async function apiCall(url) {
-    console.log("in apiCall")
-    return new Promise(resolve => {
-        fetch(url)
-            .then(function(response) {
-                return response.json()
-            })
-            .then(function(data) {
-                var weather = {};
-                weather.temp = data.main.temp;
-                weather.lat = data.coord.lat;
-                weather.lon = data.coord.lon;
-                weather.name = data.name;
-                weather.date = new Date(Date.now())
-                espWeathers.push(weather)
-                resolve(true);
-            }).catch(() => resolve(false));
-    });
-}
-
+var which_esps = [];
+var refreshInterval = 300000;
+var currentIntervalId = 0;
 const markers = [{
         name: 'Canada',
         url: 'https://en.wikipedia.org/wiki/Canada',
@@ -365,14 +111,11 @@ const markers = [{
         lon: -63.616673,
     },
 ];
-computeWeather(markers);
-
 const espWeathers = [];
-
 const myURL = jQuery('script[src$="charts.js"]')
     .attr('src')
-    .replace('charts.js', '')
-
+    .replace('charts.js', '');
+// Icônes récupérées sur leaflet pour faire la différenciation
 const myIcon = L.icon({
     iconUrl: "https://cdn-icons-png.flaticon.com/512/149/149059.png",
     iconRetinaUrl: "https://cdn-icons-png.flaticon.com/512/149/149059.png",
@@ -381,13 +124,229 @@ const myIcon = L.icon({
     popupAnchor: [0, -14],
 })
 
+//=== Initialisation des traces/charts de la page html ===
+// Apply time settings globally
+Highcharts.setOptions({
+    global: { // https://stackoverflow.com/questions/13077518/highstock-chart-offsets-dates-for-no-reason
+        useUTC: false
+            // type: 'spline'
+    },
+    time: { timezone: 'Europe/Paris' }
+});
+
+// Main
+main();
+
+// Permet la modification du temps de rafraichissement1
+function modifyRefreshTime() {
+    refreshInterval = document.getElementById('timeoutValue').value
+
+    if (!isNaN(refreshInterval)) {
+        refreshInterval = (document.getElementById('timeoutValue').value) * 1000;
+        console.log("New refresh time is : ", refreshInterval)
+        clearInterval(currentIntervalId);
+
+        window.setInterval(get_samples_from_database,
+                refreshInterval,
+                espList) // param 1 for get_samples_from_database()
+
+    } else {
+        alert("Le nombre entré n'est pas un chiffre !")
+        return
+    }
+
+}
+
+// Cette fonction permet de splitter entre deux types de données de la BDD, soit des ESP reçus via MQTT, soit des données que l'on pourrait interroger via leur IP (IN PROGRESS)
+function setEspList(resultat) {
+    //=== Gestion de la flotte d'ESP =================================
+    var which_esps_mac = []
+    var which_esps_ip = []
+    var which_esps = resultat
+
+    process_esp(which_esps, "mac")
+
+    for (var j = 0; j < which_esps_ip.length; i++) {
+        // process_esp(which_esps_ip[i], "ip")
+    }
+}
+
+//=== Installation de la periodicite des requetes GET============
+function process_esp(espList, typeAdresse) {
+    // Adresse IP
+    if (typeAdresse == "ip") {
+        // Gestion de la temperature
+        // premier appel pour eviter de devoir attendre RefreshT
+        get_samples_from_esp(which_esps[i]);
+    }
+    // Adresse MAC
+    if (typeAdresse == "mac") {
+        // Gestion de la temperature
+        // premier appel pour eviter de devoir attendre RefreshT
+        get_samples_from_database(espList);
+
+        //calls a function or evaluates an expression at specified
+        //intervals (in milliseconds).
+        currentIntervalId =
+            window.setInterval(get_samples_from_database,
+                refreshInterval,
+                espList) // param 1 for get_samples_from_database()
+    } else {
+        return null;
+    }
+}
+
+//=== Recuperation dans le Node JS server et d'Atlas des samples de l'ESP et 
+//=== Alimentation des charts ====================================
+//=== Ici on interroge pas l'ESP mais juste une base de données qui contient toutes les valeurs
+function get_samples_from_database(espList) {
+    while (espList.length > 0 && chart1.series.length < 8) {
+        try {
+            selectedEsp = espList[0].address
+            pushedId = []
+            selectedEspList = []
+
+            for (var i = 0; i < espList.length; i++) {
+                if (espList[i].address == selectedEsp) {
+                    selectedEspList.push([Date.parse(espList[i].date), parseFloat(espList[i].value)]);
+                    pushedId.push(i)
+                }
+            }
+            alreadyPresent = false
+
+            for (var j = 0; j < pushedId.length; j++) {
+                espList.splice(pushedId[i], 1)
+            }
+
+            if (selectedEspList.length > 1) {
+                for (var p = 0; p < chart1.series.length; p++) {
+                    if (selectedEsp == chart1.series.name) {
+                        alreadyPresent = true;
+                    }
+                }
+
+                if (!alreadyPresent) {
+                    chart1.addSeries({
+                        name: selectedEsp,
+                        data: selectedEspList
+                    })
+                }
+            }
+        } catch (err) {
+            console.log("Ajout de l'esp n'a pas réussi car le format n'est pas le bon : ", err)
+        }
+        chart1.redraw();
+
+    }
+}
+
+// In progress... Je voulais gérer des connexions à une adresse IP mais par manque de temps je n'ai pas pu finaliser cela
+function get_samples_from_esp(path_on_node, serie) {}
+
+// Permet de récupérer toutes les ESPs dans la base de données
+function retrieveAllEsp() {
+    $.ajax({
+        url: "/fetchAllUsers",
+        type: 'GET',
+        headers: { Accept: "application/json", },
+        success: function(resultat, statut) {
+            // Construction de l'objet contenant les informations des esp
+            // enregistrées sur Atlas
+            espResults = resultat.map(res => {
+                    return {
+                        "temp": res.value,
+                        "lat": res.lat,
+                        "lon": res.lon,
+                        "name": res.esp_nb,
+                        "city": res.city,
+                        "date": new Date(res.date)
+                    }
+                })
+                // console.log(espResults)
+            setEspList(resultat);
+            // Paramètre à true pour afficher des marqueurs différents entre 
+            // l'api OpenWeatherMap et la base de données Atlas
+            displayMarkers(espResults, true);
+        },
+        error: function(resultat, statut, erreur) {
+            console.log("Error happened on the fetch all users ajax call : ", erreur)
+        }
+    });
+}
+
+// Permet de différencier si l'adresse d'un ESP est MAC ou IP
+function countString(str, letter) {
+    let count = 0;
+
+    // looping through the items
+    for (let i = 0; i < str.length; i++) {
+
+        // check if the character is at that position
+        if (str.charAt(i) == letter) {
+            count += 1;
+        }
+    }
+    return count;
+}
+
+/////// Partie concernant l'appel à l'api OpenWeatherMap ///////
+
+// Permet de récupérer les différentes localisations que l'on a choisi, grâce à l'API open weather
+async function apiCalls(markers) {
+    let lat, lon;
+    const promises = [];
+
+    // console.log("in apiCalls", markers)
+    for (var i = 0; i < markers.length; i++) {
+        lat = markers[i].lat;
+        lon = markers[i].lon;
+
+        const apiKey = "&appid=940d0f1e4f2294d0c4a9ab486dfd9a52";
+        const route = "https://api.openweathermap.org/data/2.5/weather"
+        const params = "?units=metric&lat=" + lat + "&lon=" + lon;
+
+        // On construit l'url à partir des latitudes et longitudes récupérées 
+        // dans l'objet markers défini plus bas
+        const url = route + params + apiKey;
+
+        promises.push(apiCall(url)); // Executed about 50 times.
+    }
+    return Promise.all(promises)
+}
+
+// Permet de traiter les données renvoyées par l'API
+async function apiCall(url) {
+    // console.log("in apiCall")
+    return new Promise(resolve => {
+        fetch(url)
+            .then(function(response) {
+                return response.json()
+            })
+            .then(function(data) {
+                // Construction de l'objet Weather contenant les latitudes et longitudes
+                // Ces informations nous permettent de requêter pour avoir la température via l'api
+
+                var weather = {};
+                weather.temp = data.main.temp;
+                weather.lat = data.coord.lat;
+                weather.lon = data.coord.lon;
+                weather.name = data.name;
+                weather.date = new Date(Date.now())
+                espWeathers.push(weather)
+                resolve(true);
+            }).catch(() => resolve(false));
+    });
+}
+
+// Permet d'ajouter le marqueur
 function computeWeather(markers) {
-    // console.log("calling apiCalls", markers)
     apiCalls(markers).then(() => {
         displayMarkers(espWeathers)
     });
 }
 
+// Fonction d'affichage des marqueurs que ce soit pour l'api OpenWeatherMap 
+// ou pour les données récupérées sur Atlas
 function displayMarkers(markers, defaultIcon = false) {
     for (var i = 0; i < markers.length; ++i) {
         L.marker([Number(markers[i].lat), Number(markers[i].lon)], defaultIcon ? { icon: myIcon } : {})
@@ -397,6 +356,11 @@ function displayMarkers(markers, defaultIcon = false) {
                 '</a>'
             )
             .addTo(map)
-
     }
+}
+
+// Fonction main
+function main() {
+    retrieveAllEsp();
+    computeWeather(markers);
 }

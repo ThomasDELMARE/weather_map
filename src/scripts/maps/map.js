@@ -1,4 +1,4 @@
-//
+// Initialise l'objet map
 //See post: https://asmaloney.com/2014/01/code/creating-an-interactive-map-with-leaflet-and-openstreetmap/
 
 var map = L.map('map', {
@@ -8,7 +8,6 @@ var map = L.map('map', {
 })
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution:
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     subdomains: ['a', 'b', 'c'],
 }).addTo(map)

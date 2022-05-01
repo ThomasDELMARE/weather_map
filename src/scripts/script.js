@@ -1,5 +1,8 @@
-let allowed = true;
-retrieveAllUsers();
+// Déclaration des variables
+let allowed = true; // Permettra de limiter les requêtes envoyées
+
+// Main
+main();
 
 //https://www.educative.io/edpresso/how-to-create-tabs-in-html
 function clickHandle(evt, animalName) {
@@ -22,10 +25,13 @@ function clickHandle(evt, animalName) {
     evt.currentTarget.className += " active";
 }
 
+// Permet de récupérer tous les utilisateurs
 async function retrieveAllUsers() {
+    // On ne veut pas faire de requête pendant qu'une autre est en cours
     if (!allowed) return
     allowed = false;
 
+    // Récupère tous les utilisateurs
     var currentUsers = await fetch('/fetchAllUsers')
         .then(function(response) {
             return response.json()
@@ -35,32 +41,33 @@ async function retrieveAllUsers() {
         })
 
     document.getElementById("espList").innerHTML = null
-    knownUsers = []
+    knownUsers = [] // Permettra de ne pas ajouter deux fois le même utilisateur
 
     for (let i = 0; i < currentUsers.length; i++) {
         // On ajoute à une liste pour éviter de répéter plusieurs fois la même adresse
         if (!knownUsers.includes(currentUsers[i].address)) {
             knownUsers.push(currentUsers[i].address)
-            actionString = "'" + currentUsers[i].value + "', '" + currentUsers[i].address + "'"
-                // document.getElementById("espList").innerHTML += "<ul class='list-group list-group-horizontal'><li class='list-group-item'>" + currentUsers[i].address + `</li><button type=\"button\" onclick=\"deleteUser(${actionString})\" class=\"btn btn-danger\">Supprimer les données de l'ESP</button></ul>`
+            actionString = "'" + currentUsers[i].address + "'"
             document.getElementById("espList").innerHTML += "<div class='row list-group list-group-horizontal'><div class='col list-group-item'>" + currentUsers[i].address + `</div><div class="col"><button type=\"button\" onclick=\"deleteUser(${actionString})\" class=\"btn btn-danger\">Supprimer les données de l'ESP</button></div></div>`
         }
     }
+    // On libère le fait de pouvoir faire d'autres requêtes
     allowed = true;
 }
 
-async function deleteUser(espName, espAddress) {
+// Permet de supprimer un utilisateur via son adresse
+async function deleteUser(espAddress) {
     if (!allowed) return
     allowed = false;
 
+    // On confirme à l'utilisateur la suppression
     if (confirm("Etes vous sûr de supprimer cet ESP ainsi que toutes les données ?") == true) {
-        console.log("TEST")
-        if (espName != "" && espName != null && espAddress != "" && espAddress != null) {
+        if (espAddress != "" && espAddress != null) {
             try {
                 var xhr = new XMLHttpRequest();
                 xhr.open("DELETE", "/deleteUser", true);
                 xhr.setRequestHeader('Content-Type', 'application/json');
-                xhr.send(JSON.stringify({ name: espName, address: espAddress }));
+                xhr.send(JSON.stringify({ address: espAddress }));
             } catch (err) {
                 console.log("Add user request failed because of : ", console.log(err))
             }
@@ -74,15 +81,12 @@ async function deleteUser(espName, espAddress) {
     }
 }
 
+// Permet d'ajouter un utilisateur à la base de données
 async function addUser() {
     if (!allowed) return
     allowed = false;
-    console.log("On envoie la requete de post")
     espTemperatureValue = document.getElementById("espTemperatureValue").value
     espAddressValue = document.getElementById("espAddressValue").value
-
-    console.log(espTemperatureValue)
-    console.log(espAddressValue)
 
     if (espTemperatureValue != "" && espTemperatureValue != null && espAddressValue != "" && espAddressValue != null) {
         try {
@@ -98,4 +102,9 @@ async function addUser() {
     allowed = true;
     retrieveAllUsers();
     return 200;
+}
+
+// Main
+function main() {
+    retrieveAllUsers();
 }
