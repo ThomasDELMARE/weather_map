@@ -53,5 +53,5 @@ Nous avons decider d'ajouter une authentification pour plus de sécutité au sei
  
 Lors de l'authentification, nous allons verifier si les utilisateurs mot de passes sont existant dans notre base de données si oui alors on affiche notre page d'accueil si non on reload la page d'authentification.
   <div align="center">
-  <img src="https://media.giphy.com/media/NuFuL7BuqZ5OVnzZyj/giphy.gif"/>
+  <img src="https://media.giphy.com/media/igVNBwboTdEps398QO/giphy.gif"/>
 </div>
