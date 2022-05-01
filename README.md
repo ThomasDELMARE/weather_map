@@ -8,7 +8,16 @@ L'interêt de ce projet est de recuperer un ensemble d'ESP présentent dans le c
 <div align="center">
   <img src="https://media.giphy.com/media/NHqKX3CDFPZ8pq07gt/giphy.gif"/>
 </div>
-            
+
+<h2> Particularités du projet : </h2> 
+<h3>Wifi:</h3>
+Ne pas oublier d'ajouter son propre wifi dans le fichier classic_setup de la maniere suivante
+  wifiMulti.addAP("nomBox", "mdpBox");
+<h3>MQTT:</h3>
+Pour que MQTT obtient les données que nous lui envoyer via arduino nous avons procéder de 2 manieres
+    - La premiere etant d'essayer de parse la requete via la librairie Json Parse
+    - La seconde etant d'extraire la longitude et latitude présente dans notre requête
+
 <h2>Présentation graphe: </h2>
 
 Notre graphe de température est un graphe en lignes. Chaque lignes affichées correspondent à  l'ensemble des adresses mac ayant au moins renvoyées 2 valeurs de temperature. On peut donc trouver en abscisses la date à la quelle la valeur a été envoyée, et en ordonées la temperature renvoyée par l'adresse mac. De plus, ces données sont rafraichit des qu'une nouvelle données a été envoyée.
@@ -38,17 +47,11 @@ Les bleus correspondent à weathermap et les rouges correspondent aux ESP.
 
 <h1>Point remarquable du projet - Authentification: </h1>
 Nous avons decider d'ajouter une authentification pour plus de sécutité au sein du projet. 
-2 utilisateurs sont disponibles dans notre bases de données : 
-  - 1er user: 
-     login: menez
-     mot de passe: menez 2022
-  - 2ème user: 
-     login: test
-     mot de passe: test
+1 utilisateur est disponible dans notre bases de données : 
+    - login: menez    
+    - mot de passe: menez 2022
+ 
 Lors de l'authentification, nous allons verifier si les utilisateurs mot de passes sont existant dans notre base de données si oui alors on affiche notre page d'accueil si non on reload la page d'authentification.
   <div align="center">
   <img src="https://media.giphy.com/media/NuFuL7BuqZ5OVnzZyj/giphy.gif"/>
 </div>
-
-
-<h1> Problèmes rencontrés :</h1>
