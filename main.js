@@ -207,8 +207,21 @@ async function addUserData(jsonData) {
         who = jsonData.info.ident; // MAC
         value = jsonData.status.temperature; // TEMPERATURE
         location = jsonData.info.loc; // LOCATION (lat + long)
-        lat = parsingLocation(location)[0];
-        lon = parsingLocation(location)[1];
+        if (typeof location != "object") {
+            lat = parsingLocation(location)[0];
+            lon = parsingLocation(location)[1];
+            if (lat.isArray()) {
+                lat = lat[0]
+            }
+            if (lon.isArray()) {
+                lon = lon[0]
+            }
+        } else {
+            lat = location.lat
+            lon = location.lgn
+        }
+        console.log("Lat value : ", lat)
+        console.log("Lon value : ", lon)
     } catch (err) {
         console.log("Add user data failed because of : ", err.message)
         return null
@@ -310,6 +323,8 @@ function setAccessAllowed() {
 // d'une certaine forme.
 function parsingLocation(locationStringOrJson) {
     parsing = []
+
+    // if(typeof locationStringOrJson == )
 
     try {
         // Avec l'exemple '{"lat":43.71164703,"lgn":7.282168388}'

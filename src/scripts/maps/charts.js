@@ -200,7 +200,7 @@ function process_esp(espList, typeAdresse) {
 //=== Alimentation des charts ====================================
 //=== Ici on interroge pas l'ESP mais juste une base de données qui contient toutes les valeurs
 function get_samples_from_database(espList) {
-    while (espList.length > 0 && chart1.series.length < 8) {
+    while (espList.length > 0 && chart1.series.length < 10) {
         try {
             selectedEsp = espList[0].address
             pushedId = []
@@ -349,13 +349,18 @@ function computeWeather(markers) {
 // ou pour les données récupérées sur Atlas
 function displayMarkers(markers, defaultIcon = false) {
     for (var i = 0; i < markers.length; ++i) {
-        L.marker([Number(markers[i].lat), Number(markers[i].lon)], defaultIcon ? { icon: myIcon } : {})
-            .bindPopup(
-                '<a target="_blank">' +
-                markers[i].name + " : " + markers[i].temp + " °C" +
-                '</a>'
-            )
-            .addTo(map)
+        try {
+            L.marker([Number(markers[i].lat), Number(markers[i].lon)], defaultIcon ? { icon: myIcon } : {})
+                .bindPopup(
+                    '<a target="_blank">' +
+                    markers[i].name + " : " + markers[i].temp + " °C" +
+                    '</a>'
+                )
+                .addTo(map)
+        } catch (err) {
+            console.log("Ajout du marqueur n'a pas réussi car : ", err)
+        }
+
     }
 }
 
