@@ -46,7 +46,7 @@ Les bleus correspondent aux données tirées de weathermap et les rouges corresp
   <img src="https://media.giphy.com/media/m08EAlc00qmq2jtJwT/giphy.gif"/>
 </div>
 
-<h1>Point remarquable du projet - Authentification</h1>
+<h1>Sécurité</h1>
 Nous avons décidé d'ajouter une authentification pour plus de sécurité au sein du projet. 
 1 utilisateur est disponible dans notre bases de données : 
     <br>- Identifiant : menez    
@@ -56,6 +56,14 @@ Lors de l'authentification, nous allons vérifier si la combinaison utilisateur/
   <div align="center">
   <img src="https://media.giphy.com/media/igVNBwboTdEps398QO/giphy.gif"/>
 </div>
+
+<h1>Point remarquable - Gestion des erreurs de format</h1>
+
+Afin de pallier aux potentiels mauvais formats de la donnée "location" nous avons fait en sorte de gérer deux types de format : JSON et String.
+
+Nous avons pris en compte que le séparateur pouvait être ":" pour le format String et que la donnée "location" pouvait être au format JSON. 
+
+On pourrait très facilement ajouter un autre séparateur ";".
 
 ```javascript
 // Fonction permettant d'essayer le parsing des données de location
