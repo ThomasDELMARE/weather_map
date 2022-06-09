@@ -56,3 +56,46 @@ Lors de l'authentification, nous allons vérifier si la combinaison utilisateur/
   <div align="center">
   <img src="https://media.giphy.com/media/igVNBwboTdEps398QO/giphy.gif"/>
 </div>
+
+```javascript
+// Fonction permettant d'essayer le parsing des données de location
+// Vu que les donneés à renvoyer n'étaient pas claires, nous avons décidé de gérer le cas où la variable "location" est un json ou un string
+// d'une certaine forme.
+function parsingLocation(locationStringOrJson) {
+    parsing = []
+
+    // if(typeof locationStringOrJson == )
+
+    try {
+        // Avec l'exemple '{"lat":43.71164703,"lgn":7.282168388}'
+
+        // On isole la latitude
+        lat = locationStringOrJson.split(":");
+        latText = lat[1] // Renverra 43.71164703,"lgn":7.282168388}'
+        lat = latText.split(",")
+        latText = lat[0] // Renverra 43.71164703
+        parsing.push(latText)
+
+        // On isole la longitude
+        lgn = locationStringOrJson.split(":");
+        lgnText = lgn[2] // Renverra 43.71164703,"lgn":7.282168388}'
+        lgn = lgnText.split("}")
+        lgnText = lgn[0] // Renverra 7.282168388
+        parsing.push(lgnText)
+
+        return parsing;
+    } catch {
+        console.log("Tried to parse location from string and failed")
+    }
+    try {
+        // On essaye de parser avec le format JSON pris en compte par Javascript
+        parsed = JSON.parse(locationStringOrJson);
+        parsing.push(parsed.lat, parsed.lgn);
+        return parsing;
+    } catch {
+        console.log("Tried to parse location from Json and failed.")
+    }
+
+    return null;
+}
+```
